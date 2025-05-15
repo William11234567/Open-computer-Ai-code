@@ -1,0 +1,97 @@
+-- Save this file as 'gui_example.lua' on your OpenComputers floppy or hard drive
+
+-- Load necessary OpenComputers components
+local component = require("component")
+local event = require("event")
+local term = require("term")
+
+-- Get the screen and keyboard components
+local screen = component.proxy(component.list("screen")())
+local keyboard = component.proxy(component.list("keyboard")())
+
+-- Set the screen as the primary output for drawing
+term.bind(screen)
+
+-- Get screen dimensions
+local width, height = screen.getResolution()
+
+-- --- GUI Elements Setup ---
+local bgColor = 0x222222 -- Dark gray background
+local textColor = 0xFFFFFF -- White text
+local buttonColor = 0x444444 -- Medium gray button
+local buttonHoverColor = 0x666666 -- Lighter gray on hover
+local buttonTextColor = 0xFFFFFF -- White button text
+
+-- Main message
+local message = "Hello, OpenComputers!"
+
+-- Button properties
+local button = {
+    x = math.floor(width / 2) - 5,
+    y = math.floor(height / 2) + 2,
+    width = 10,
+    height = 3,
+    text = "Click Me!"
+}
+
+-- Function to draw the entire GUI
+local function drawGUI()
+    -- Clear screen and set background color
+    screen.setBackground(bgColor)
+    screen.setForeground(textColor)
+    screen.clear()
+
+    -- Draw the main message (centered)
+    term.setCursorPos(math.floor(width / 2) - math.floor(#message / 2), math.floor(height / 2) - 2)
+    term.write(message)
+
+    -- Draw the button
+    local currentButtonColor = buttonColor
+    if button.isHovered then
+        currentButtonColor = buttonHoverColor
+    end
+    screen.setBackground(currentButtonColor)
+    screen.fill(button.x, button.y, button.width, button.height, " ") -- Draw filled rectangle
+
+    -- Draw button text (centered within button)
+    screen.setForeground(buttonTextColor)
+    term.setCursorPos(button.x + math.floor(button.width / 2) - math.floor(#button.text / 2), button.y + math.floor(button.height / 2))
+    term.write(button.text)
+end
+
+-- Function to check if a point is inside the button
+local function isInsideButton(mx, my)
+    return mx >= button.x and mx < (button.x + button.width) and
+           my >= button.y and my < (button.y + button.height)
+end
+
+-- --- Main Program Loop ---
+drawGUI() -- Initial draw
+
+while true do
+    local _, name, _, x, y, buttonClicked, isDoubleClick = event.pull("mouse_click", "mouse_drag", "mouse_up", "mouse_move")
+
+    if name == "mouse_move" then
+        local oldHovered = button.isHovered
+        button.isHovered = isInsideButton(x, y)
+        if oldHovered ~= button.isHovered then
+            drawGUI() -- Redraw only if hover state changed
+        end
+    elseif name == "mouse_click" and buttonClicked == 1 then -- Left mouse button
+        if isInsideButton(x, y) then
+            message = "Button Clicked!"
+            drawGUI() -- Update and redraw message
+        end
+    elseif name == "key_down" then
+        if x == 28 then -- Escape key (Key code 28)
+            break -- Exit the loop to end the program
+        end
+    end
+end
+
+-- Cleanup (optional, but good practice)
+screen.setBackground(0x000000)
+screen.setForeground(0xFFFFFF)
+screen.clear()
+term.setCursorPos(1,1)
+print("Program ended.")
